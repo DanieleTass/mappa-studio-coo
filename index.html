@@ -240,6 +240,29 @@ h1{font-family:var(--f-display);font-size:30px;line-height:1.1;margin:0;text-wra
 }
 .ref-hit{background:var(--a-soft);box-shadow:0 0 0 3px var(--a-soft);outline:2px solid var(--a);outline-offset:3px;border-radius:4px;transition:background .6s}
 .back-tav{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:15;font:inherit;font-size:13.5px;font-weight:600;background:var(--ink);color:var(--bg);border:0;border-radius:999px;padding:10px 16px;cursor:pointer;box-shadow:0 8px 24px -8px rgba(0,0,0,.4)}
+/* elenchi come grafica */
+.vl{list-style:none;padding:0!important;margin:.8em 0;counter-reset:none}
+.vl>li{--c:var(--b)}
+.vl>li:nth-child(5n+2){--c:var(--a)} .vl>li:nth-child(5n+3){--c:var(--ok)} .vl>li:nth-child(5n+4){--c:var(--no)} .vl>li:nth-child(5n+5){--c:var(--muted)}
+.vl-n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--c);color:var(--surface);display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-display);font-weight:700;font-size:13px;line-height:1}
+.vl-body{display:flex;flex-direction:column;gap:3px;min-width:0}
+.vl-key{font-family:var(--f-display);font-size:.95em;font-weight:700;color:var(--c)}
+.vl-txt{line-height:1.5}
+.vl-count{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:1em 0 -.3em}
+.vl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.vl-grid>li{display:flex;flex-direction:column;gap:8px;background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:10px;padding:10px 12px;font-family:var(--f-body);font-size:14px;margin:0!important}
+.vl-flow>li{display:flex;gap:12px;align-items:flex-start;position:relative;padding:0 0 14px;margin:0!important}
+.vl-flow>li:not(:last-child)::after{content:"";position:absolute;left:13px;top:30px;bottom:2px;border-left:2px solid var(--line)}
+.vl-flow .vl-body{padding-top:3px}
+.vl-sub{margin:.4em 0 0;padding-left:18px;font-size:.93em}
+.vl-sub>li{list-style:none;position:relative;margin:.2em 0}
+.vl-sub>li::before{content:"";position:absolute;left:-14px;top:.6em;width:7px;height:7px;border-radius:2px;background:var(--line)}
+.vl-fields{display:flex;flex-direction:column;gap:8px}
+.vl-fields>li{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border-radius:9px;padding:9px 11px;border-left:4px solid var(--c);margin:0!important}
+.vl-ic{flex:none;width:26px;height:26px;border-radius:7px;background:var(--c);color:var(--surface);display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+.vl-fields .vl-key{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase}
+.scheda .vl-fields>li{font-size:13.5px}
+.full .vl-grid>li{font-size:14.5px}
 /* tavole interattive */
 .rv{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px 14px;display:flex;flex-direction:column;gap:14px;min-width:0;box-shadow:0 1px 0 var(--line),0 10px 28px -20px rgba(20,40,60,.35)}
 .rv-cap{display:flex;flex-direction:column;gap:4px}
@@ -734,6 +757,7 @@ function fill(d) {
   b.innerHTML = `
     ${x.sch ? `<div><div class="label">Scheda riassuntiva</div><div class="scheda">${md(x.sch)}</div></div>` : ""}
     <div><div class="label">Lezione completa · ${x.c === "E" ? "EXPERT" : "Operations"} ${x.n}</div><div class="full">${md(x.txt)}</div></div>`;
+  enhanceLists(b);
   b.dataset.ok = 1;
 }
 
@@ -1186,6 +1210,7 @@ function showDrawer(k) {
     <h2>${esc(x.t)}</h2>
     <div><div class="label">Dove sta</div><p style="margin:0">Tappa ${t.i} · ${esc(t.name)}<br>Argomento: ${esc(tp.name)}</p></div>
     <div><div class="label">Scheda riassuntiva</div><div class="scheda">${x.sch ? md(x.sch) : "Nessuna scheda."}</div></div>`;
+  enhanceLists(dr);
   dr.hidden = false;
   document.getElementById("close-d").onclick = () => dr.hidden = true;
   document.getElementById("close-d").focus();
@@ -1197,6 +1222,44 @@ document.getElementById("mq").addEventListener("input", e => { mmQuery = norm(e.
 document.getElementById("open-all").onclick = () => { TAPPE.forEach(t => mmOpen.add("t" + t.i)); renderTree(); };
 document.getElementById("open-everything").onclick = () => { TAPPE.forEach(t => { mmOpen.add("t" + t.i); t.topics.forEach((tp, j) => mmOpen.add("t" + t.i + "g" + j)); }); renderTree(); };
 document.getElementById("close-all").onclick = () => { mmOpen.clear(); renderTree(); };
+
+/* ---------- elenchi puntati → grafica ---------- */
+const FIELD = { "fase": ["◷", "b"], "idea chiave": ["✦", "a"], "concetti e strumenti": ["⚙", "b"], "esempio del corso": ["◉", "ok"],
+  "nel tuo mondo (ipotesi)": ["◐", "a"], "azione pratica": ["➜", "ok"], "collega a": ["↔", "muted"], "a cosa serve": ["✦", "a"],
+  "campi/struttura": ["▦", "b"], "errore tipico": ["✕", "no"], "versione e-commerce (ipotesi)": ["◐", "a"], "nota": ["✎", "muted"] };
+function splitKey(li) {
+  // "**Termine:** testo" oppure "Termine: testo" → etichetta + testo
+  const f = li.firstChild;
+  if (f && f.nodeType === 1 && f.tagName === "STRONG") {
+    const key = f.textContent.replace(/[:：]\s*$/, "").trim();
+    if (key.length && key.length <= 60) { f.remove(); const rest = li.innerHTML.replace(/^\s*[:：–—-]?\s*/, ""); return [key, rest]; }
+  }
+  if (f && f.nodeType === 3) {
+    const m = f.textContent.match(/^\s*([^:：.]{2,42})[:：]\s+/);
+    if (m && li.querySelectorAll("ul,ol").length === 0) { f.textContent = f.textContent.slice(m[0].length); return [m[1].trim(), li.innerHTML]; }
+  }
+  return null;
+}
+function enhanceLists(root) {
+  root.querySelectorAll("ul, ol").forEach(list => {
+    if (list.dataset.vl) return; list.dataset.vl = 1;
+    if (list.parentElement.closest("li")) { list.classList.add("vl-sub"); return; }
+    const items = [...list.children].filter(e => e.tagName === "LI"); const n = items.length; if (!n) return;
+    const keys = items.map(li => (li.firstChild && li.firstChild.tagName === "STRONG" ? li.firstChild.textContent : "").replace(/[:：]\s*$/, "").trim().toLowerCase());
+    const isFields = keys.filter(k => FIELD[k]).length >= Math.max(2, n * 0.6);
+    if (isFields) {
+      list.classList.add("vl", "vl-fields");
+      items.forEach((li, i) => { const sk = splitKey(li); const [ic, c] = FIELD[keys[i]] || ["•", "muted"]; li.style.setProperty("--c", `var(--${c})`);
+        li.innerHTML = `<span class="vl-ic" aria-hidden="true">${ic}</span><span class="vl-body">${sk ? `<b class="vl-key">${esc(sk[0])}</b><span class="vl-txt">${sk[1]}</span>` : li.innerHTML}</span>`; });
+      return;
+    }
+    const short = n >= 2 && n <= 6 && items.every(li => li.textContent.trim().length <= 120 && !li.querySelector("ul,ol"));
+    list.classList.add("vl", short ? "vl-grid" : "vl-flow");
+    items.forEach((li, i) => { const sk = splitKey(li);
+      li.innerHTML = `<span class="vl-n" aria-hidden="true">${i + 1}</span><span class="vl-body">${sk ? `<b class="vl-key">${esc(sk[0])}</b><span class="vl-txt">${sk[1]}</span>` : `<span class="vl-txt">${li.innerHTML}</span>`}</span>`; });
+    if (n >= 3) { const c = document.createElement("div"); c.className = "vl-count"; c.textContent = n + " punti da ricordare"; list.before(c); }
+  });
+}
 
 /* ---------- collegamenti tavola → punto della lezione ---------- */
 let pendingRef = null, backTo = null, pendingVis = null;
