@@ -1240,7 +1240,40 @@ function splitKey(li) {
   }
   return null;
 }
+function enhanceInline(root) {
+  // "Intro: voce, voce, voce e voce. Resto" → intro + schede numerate + resto
+  const BAD = /^(così|perché|che|ma|quindi|cioè|anche|poi|se|mentre|invece|prima|perciò|a|di|da|non|il che|ovvero|oppure|altrimenti|è)(\s|$)/i;
+  root.querySelectorAll(".full p").forEach(p => {
+    if (p.dataset.vi || p.closest("li, blockquote, td")) return; p.dataset.vi = 1;
+    if ([...p.children].some(c => !["STRONG", "EM", "B", "I", "CODE"].includes(c.tagName))) return;
+    const T = p.textContent.replace(/\s+/g, " ").trim();
+    const i = T.indexOf(": "); if (i < 3 || i > 170) return;
+    const after = T.slice(i + 2);
+    const m = after.match(/^(.+?[^.\d][.?!;])(\s+(.*))?$/);
+    let seg = m ? m[1] : after; const end = m ? seg.slice(-1) : ""; seg = seg.replace(/[.?!;]$/, "");
+    const rest = m && m[3] ? m[3].trim() : "";
+    if (/[.?!;:"“”«»]/.test(seg)) return;
+    let parts = seg.split(/,\s+/); if (parts.length < 2) return;
+    const last = parts.pop();
+    if (/^(e|ed|o|oppure)\s/.test(last)) parts.push(last.replace(/^(e|ed|o|oppure)\s+/, ""));
+    else { const mm = last.match(/^(.+?)\s+(?:e|ed|o|oppure)\s+(.+)$/); if (mm && mm[2].length > 3) parts.push(mm[1], mm[2]); else parts.push(last); }
+    parts = parts.map(x => x.trim()).filter(Boolean);
+    const n = parts.length; if (n < 3 || n > 9) return;
+    if (parts.reduce((s, x) => s + x.length, 0) / n > 42 || parts.some(x => x.length > 65 || x.length < 4)) return;
+    if (parts.some(x => BAD.test(x)) || parts.slice(0, -1).some(x => /^(e|ed|o)\s/.test(x))) return;
+    if (parts.slice(1).some(x => /\s(è|sono|era|erano)\s/.test(" " + x + " "))) return;
+    if (parts.some(x => (x.match(/\(/g) || []).length !== (x.match(/\)/g) || []).length)) return;
+    { const L = parts.map(x => x.length); if (Math.max(...L) > 5 * Math.min(...L)) return; }
+    const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
+    const box = document.createElement("div"); box.className = "vi";
+    box.innerHTML = `<p>${esc(T.slice(0, i + 1))}</p><div class="vl-count">${n} punti da ricordare</div>
+      <ul class="vl vl-grid" data-vl="1">${parts.map((x, k) => `<li><span class="vl-n" aria-hidden="true">${k + 1}</span><span class="vl-body"><span class="vl-txt">${esc(cap(x))}${end === "?" ? "?" : ""}</span></span></li>`).join("")}</ul>
+      ${rest ? `<p>${esc(rest)}</p>` : ""}`;
+    p.replaceWith(box);
+  });
+}
 function enhanceLists(root) {
+  enhanceInline(root);
   root.querySelectorAll("ul, ol").forEach(list => {
     if (list.dataset.vl) return; list.dataset.vl = 1;
     if (list.parentElement.closest("li")) { list.classList.add("vl-sub"); return; }
